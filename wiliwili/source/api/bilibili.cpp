@@ -40,7 +40,10 @@ void BilibiliClient::setProxy(const std::string& httpProxy, const std::string& h
 
 void BilibiliClient::setTlsVerify(bool value) {
     HTTP::VERIFY = cpr::VerifySsl{value};
-    HTTP::PROTOCOL = value ? "https:" : "http:";
+    // Fix: Always use HTTPS protocol. When tls_verify is false, we only skip
+    // certificate verification but still use HTTPS. Using HTTP causes 307
+    // redirects and cookies are not sent after redirect, resulting in login failure.
+    // HTTP::PROTOCOL = value ? "https:" : "http:";
 }
 
 void BilibiliClient::setHttpTimeout(int ms) {
