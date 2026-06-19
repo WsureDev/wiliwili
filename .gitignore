@@ -21,6 +21,7 @@ repo/
 /winrt/AppxManifest.xml
 libromfs-generator
 build-*
+!.github/workflows/build-pc.yml
 android-project
 *.deb
 *.dmp
