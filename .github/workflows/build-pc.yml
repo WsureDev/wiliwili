@@ -1,0 +1,183 @@
+name: Build wiliwili (PC only - Windows x86_64 d3d11 + Linux x86_64)
+
+on:
+  push:
+    branches:
+      - feat/mpv-upgrade-pc
+  pull_request:
+    branches:
+      - feat/mpv-upgrade-pc
+  workflow_dispatch:
+    inputs:
+      disable_unity_build:
+        description: 'Disable unity build (faster incremental, slower full build)'
+        required: false
+        default: 'false'
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.info.outputs.version }}
+      DIST_EXE: ${{ steps.info.outputs.DIST_EXE }}
+      DIST_FLATPAK_X86_64: ${{ steps.info.outputs.DIST_FLATPAK_X86_64 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: info
+        run: |
+          VERSION=$(git rev-parse --short HEAD)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "DIST_EXE=wiliwili-Windows-${VERSION}" >> $GITHUB_OUTPUT
+          echo "DIST_FLATPAK_X86_64=wiliwili-Linux-${VERSION}-x86_64" >> $GITHUB_OUTPUT
+
+  build-win-x86_64-d3d11:
+    needs: [ version ]
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          path-type: inherit
+          cache: false
+          install: >-
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-cc
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install mpv 0.40.0
+        run: |
+          curl -LO https://github.com/xfangfang/wiliwili/releases/download/v0.1.0/mingw-w64-x86_64-mpv-0.40.0-2-any.pkg.tar.zst
+          pacman -U --noconfirm mingw-w64-x86_64-mpv-0.40.0-2-any.pkg.tar.zst
+
+      - name: Install cv2pdb
+        run: |
+          curl -sLO https://github.com/rainers/cv2pdb/releases/download/v0.54/cv2pdb-0.54.zip
+          unzip cv2pdb-0.54.zip cv2pdb64.exe -d /usr/bin
+
+      - name: Update gamepad db
+        run: |
+          BRLS_GLFW=library/borealis/library/lib/extern/glfw
+          cmake -P ${BRLS_GLFW}/CMake/GenerateMappings.cmake ${BRLS_GLFW}/src/mappings.h.in ${BRLS_GLFW}/src/mappings.h
+
+      - name: Build libwebp
+        run: |
+          curl -sL https://github.com/webmproject/libwebp/archive/v1.6.0.tar.gz | tar zxf - -C /tmp
+          cmake -B build-libwebp -S /tmp/libwebp-1.6.0 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${MINGW_PREFIX} \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DWEBP_BUILD_ANIM_UTILS=OFF \
+            -DWEBP_BUILD_CWEBP=OFF \
+            -DWEBP_BUILD_DWEBP=OFF \
+            -DWEBP_BUILD_GIF2WEBP=OFF \
+            -DWEBP_BUILD_IMG2WEBP=OFF \
+            -DWEBP_BUILD_VWEBP=OFF \
+            -DWEBP_BUILD_WEBPINFO=OFF \
+            -DWEBP_BUILD_WEBPMUX=OFF \
+            -DWEBP_BUILD_LIBWEBPMUX=OFF \
+            -DWEBP_BUILD_EXTRAS=OFF
+          cmake --build build-libwebp
+          cmake --install build-libwebp
+
+      - name: Build curl
+        run: |
+          curl -sL https://curl.se/download/curl-8.7.1.tar.xz | tar Jxf - -C /tmp
+          cmake -B build-curl -S /tmp/curl-8.7.1 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${MINGW_PREFIX} \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DHTTP_ONLY=ON \
+            -DCURL_USE_SCHANNEL=ON \
+            -DCURL_DISABLE_PROGRESS_METER=ON \
+            -DBUILD_CURL_EXE=OFF \
+            -DBUILD_TESTING=OFF \
+            -DBUILD_LIBCURL_DOCS=OFF \
+            -DUSE_LIBIDN2=OFF \
+            -DUSE_WIN32_IDN=ON \
+            -DCURL_USE_LIBSSH2=OFF \
+            -DCURL_USE_LIBPSL=OFF \
+            -DZLIB_USE_STATIC_LIBS=ON
+          cmake --build build-curl
+          cmake --install build-curl
+
+      - name: Build wiliwili (Windows x86_64 D3D11)
+        run: |
+          cmake -B build -G Ninja \
+            -DUSE_D3D11=ON \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DPLATFORM_DESKTOP=ON \
+            -DWIN32_TERMINAL=OFF \
+            -DUSE_SYSTEM_CURL=ON \
+            -DUSE_LIBROMFS=ON \
+            -DBRLS_UNITY_BUILD=${{ github.event.inputs.disable_unity_build == 'true' && 'OFF' || 'ON' }} \
+            -DCMAKE_UNITY_BUILD_BATCH_SIZE=20 \
+            -DZLIB_USE_STATIC_LIBS=ON \
+            -DMPV_BUNDLE_DLL=${MINGW_PREFIX}/bin/libmpv-2.dll \
+            -DVERSION_BUILD=${{ github.run_number }}
+          cmake --build build
+          cv2pdb64 build/wiliwili.exe
+          cp -a README.md build/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ needs.version.outputs.DIST_EXE }}-d3d-x86_64
+          path: |
+            build/wiliwili.exe
+            build/wiliwili.pdb
+            build/README.md
+          if-no-files-found: error
+
+  build-linux-flatpak-x86_64:
+    needs: [ version ]
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-25.08
+      options: --privileged
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Disable unity build
+        if: github.event.inputs.disable_unity_build == 'true'
+        run: |
+          sed -i 's/BRLS_UNITY_BUILD=ON/BRLS_UNITY_BUILD=OFF/' .flatpak-manifest.yml
+
+      - name: Update gamepad mappings
+        run: |
+          BRLS_GLFW="library/borealis/library/lib/extern/glfw/"
+          cmake -P ${BRLS_GLFW}/CMake/GenerateMappings.cmake ${BRLS_GLFW}/src/mappings.h.in ${BRLS_GLFW}/src/mappings.h
+
+      - name: Build Flatpak
+        id: flatpak_build
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6.7
+        with:
+          bundle: wiliwili-Linux-${{ needs.version.outputs.version }}-x86_64.flatpak
+          manifest-path: .flatpak-manifest.yml
+          cache-key: flatpak-builder-gl-${{ hashFiles('.flatpak-manifest.yml') }}
+          verbose: true
+          arch: x86_64
+          upload-artifact: false
+
+      - name: Upload Flatpak artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ needs.version.outputs.DIST_FLATPAK_X86_64 }}
+          path: wiliwili-Linux-${{ needs.version.outputs.version }}-x86_64.flatpak
+          if-no-files-found: error

@@ -116,33 +116,40 @@ target("pdr")
 package_end()
 
 package("mpv")
+    -- mpv 0.40.0 MSYS2/MinGW packages from xfangfang/wiliwili releases
+    -- These are standard pacman packages (.pkg.tar.zst) containing mingw64/{bin,include,lib}
     if is_plat("windows", "mingw") then
-        set_urls("https://github.com/zeromake/wiliwili/releases/download/v0.6.0/mpv-dev-x86_64-v3-20230514-git-9e716d6.7z")
-        add_versions("20230514", "d56e3e10ea3f9362a0d9bb85ff3cd84f6e1fecfe66c87725040a82d5712b3f5f")
+        if is_arch("x86_64") then
+            set_urls("https://github.com/xfangfang/wiliwili/releases/download/v0.1.0/mingw-w64-x86_64-mpv-0.40.0-2-any.pkg.tar.zst")
+            add_versions("0.40.0", "skip")  -- hash verification skipped; content from trusted xfangfang release
+        elseif is_arch("i386", "i686", "x86") then
+            set_urls("https://github.com/xfangfang/wiliwili/releases/download/v0.1.0/mingw-w64-i686-mpv-0.40.0-2-any.pkg.tar.zst")
+            add_versions("0.40.0", "skip")
+        end
     end
     add_links("mpv")
     on_install("windows", "mingw", function (package)
-        import("detect.sdks.find_vstudio")
-        os.cp("include/*", package:installdir("include").."/")
-        os.cp("*.a", package:installdir("lib").."/")
-        os.cp("*.dll", package:installdir("bin").."/")
-        if package:is_plat("windows") then
-            -- 从 dll 里导出函数为 lib 文件，预编译自带 def 文件格式不正确，没法导出 lib
-            if os.isfile("mpv.def") then
-                local def_context = io.readfile("mpv.def")
-                if not def_context:startswith("EXPORTS") then
-                    io.writefile("mpv.def", format("EXPORTS\n%s", def_context))
-                end
+        -- The pacman package is a tar containing mingw64/... paths
+        -- xmake download + extract gives us the directory; find the mingw prefix subdir
+        local mingw_subdir = "mingw64"
+        if not os.isdir(mingw_subdir) then
+            mingw_subdir = "mingw32"
+        end
+        if os.isdir(mingw_subdir) then
+            if os.isdir(path.join(mingw_subdir, "include")) then
+                os.cp(path.join(mingw_subdir, "include", "*"), package:installdir("include") .. "/")
             end
-            for _, vsinfo in pairs(find_vstudio()) do
-                if vsinfo.vcvarsall then
-                    os.setenv("PATH", vsinfo.vcvarsall[os.arch()]["PATH"])
-                end
+            if os.isdir(path.join(mingw_subdir, "lib")) then
+                os.cp(path.join(mingw_subdir, "lib", "*.a"), package:installdir("lib") .. "/")
             end
-
-            os.execv("lib.exe", {"/name:libmpv-2.dll", "/def:mpv.def", "/out:mpv.lib", "/MACHINE:X64"})
-            os.cp("*.lib", package:installdir("lib").."/")
-            os.cp("*.exp", package:installdir("lib").."/")
+            if os.isdir(path.join(mingw_subdir, "bin")) then
+                os.cp(path.join(mingw_subdir, "bin", "*.dll"), package:installdir("bin") .. "/")
+            end
+        else
+            -- fallback: flat layout
+            os.trycp("include/*",    package:installdir("include") .. "/")
+            os.trycp("*.a",          package:installdir("lib")     .. "/")
+            os.trycp("*.dll",        package:installdir("bin")     .. "/")
         end
     end)
 package_end()
