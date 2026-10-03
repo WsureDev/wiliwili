@@ -79,7 +79,13 @@ jobs:
         run: make -C scripts/android TMPDIR="${{ runner.temp }}" ABI="${{ matrix.abi }}" build
 
       - name: Build host libromfs generator
-        run: bash library/borealis/build_libromfs_generator.sh
+        run: |
+          cmake -S library/borealis/library/lib/extern/libromfs/generator \
+            -B library/borealis/build_libromfs_generator -G Ninja
+          cmake --build library/borealis/build_libromfs_generator
+          cp library/borealis/build_libromfs_generator/libromfs-generator \
+            library/borealis/libromfs-generator
+          rm -rf library/borealis/build_libromfs_generator
 
       - name: Build APK split
         working-directory: app/platform/android
