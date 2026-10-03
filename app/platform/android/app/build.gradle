@@ -55,8 +55,10 @@ android {
 
     sourceSets {
         main {
-            // Package libmpv, FFmpeg, SDL2, and curl built by scripts/android.
-            jniLibs.srcDir '../../../../jniLibs'
+            // CI stages only the selected ABI's shared libraries here. Keeping
+            // headers, static archives, and pkg-config files out of jniLibs
+            // prevents Gradle's JNI merge task from exhausting the heap.
+            jniLibs.srcDir 'src/main/jniLibs'
         }
     }
 
