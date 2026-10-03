@@ -156,6 +156,6 @@ mpv: SDL2 ffmpeg libplacebo
 	meson setup build/mpv $(TMPDIR)/mpv-0.41.0 --cross-file "$(CURDIR)/$(ABI).meson" \
 		--default-library=shared -Dlibmpv=true -Dcplayer=false -Dtests=false \
 		-Diconv=disabled -Dsdl2-audio=enabled -Dsdl2-video=enabled -Dlua=disabled \
-		-Dmanpage-build=disabled -Dlibarchive=disabled -Dlibplacebo=enabled
+		-Dmanpage-build=disabled -Dlibarchive=disabled
 	meson compile -C build/mpv
 	meson install -C build/mpv --destdir $(PREFIX)
