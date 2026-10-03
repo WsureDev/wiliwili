@@ -50,6 +50,15 @@ set(USE_GLES3 ON CACHE BOOL "")
 set(SIMPLE_HIGHLIGHT ON CACHE BOOL "")
 set(USE_LIBROMFS ON CACHE BOOL "")
 
+# CPR is part of the main build and must use the same Android Mbed TLS
+# static libraries that curl and FFmpeg use. Explicit paths avoid host
+# OpenSSL/Mbed TLS detection leaking into the cross build.
+set(CPR_FORCE_MBEDTLS_BACKEND ON CACHE BOOL "")
+set(MBEDTLS_INCLUDE_DIRS "${MPV_PREFIX}/include" CACHE PATH "")
+set(MBEDTLS_LIBRARY "${MPV_PREFIX}/lib/libmbedtls.a" CACHE FILEPATH "")
+set(MBEDX509_LIBRARY "${MPV_PREFIX}/lib/libmbedx509.a" CACHE FILEPATH "")
+set(MBEDCRYPTO_LIBRARY "${MPV_PREFIX}/lib/libmbedcrypto.a" CACHE FILEPATH "")
+
 # src is a symlink to the repository root. Keeping the same layout as
 # switchfin/borealis means all project and submodule paths remain unchanged.
 add_subdirectory(src "${CMAKE_CURRENT_BINARY_DIR}/wiliwili")
