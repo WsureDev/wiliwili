@@ -87,6 +87,13 @@ jobs:
             library/borealis/libromfs-generator
           rm -rf library/borealis/build_libromfs_generator
 
+      - name: Stage native shared libraries
+        run: |
+          rm -rf app/platform/android/app/src/main/jniLibs
+          mkdir -p app/platform/android/app/src/main/jniLibs/${{ matrix.abi }}
+          find jniLibs/${{ matrix.abi }}/lib -maxdepth 1 -type f -name '*.so'             -exec cp {} app/platform/android/app/src/main/jniLibs/${{ matrix.abi }}/ ;
+          test "$(find app/platform/android/app/src/main/jniLibs/${{ matrix.abi }} -type f -name '*.so' | wc -l)" -gt 0
+
       - name: Build APK split
         working-directory: app/platform/android
         run: bash ./gradlew --no-daemon -PtargetAbi="${{ matrix.abi }}" assembleRelease
