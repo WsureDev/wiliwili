@@ -59,6 +59,11 @@ set(MBEDTLS_LIBRARY "${MPV_PREFIX}/lib/libmbedtls.a" CACHE FILEPATH "")
 set(MBEDX509_LIBRARY "${MPV_PREFIX}/lib/libmbedx509.a" CACHE FILEPATH "")
 set(MBEDCRYPTO_LIBRARY "${MPV_PREFIX}/lib/libmbedcrypto.a" CACHE FILEPATH "")
 
+# Borealis' Android branch locates SDL2 with find_library but does not add the
+# prefix's include directory. Add it globally so SDL headers are visible while
+# compiling Borealis' platform sources.
+include_directories(SYSTEM "${MPV_PREFIX}/include")
+
 # src is a symlink to the repository root. Keeping the same layout as
 # switchfin/borealis means all project and submodule paths remain unchanged.
 add_subdirectory(src "${CMAKE_CURRENT_BINARY_DIR}/wiliwili")
