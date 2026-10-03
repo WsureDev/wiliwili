@@ -9,7 +9,7 @@ TMPDIR ?= /tmp/wiliwili-android
 TOOLCHAIN := $(ANDROID_NDK)/toolchains/llvm/prebuilt/linux-x86_64
 
 export LDFLAGS=-Wl,-z,max-page-size=16384
-export PATH=$(TOOLCHAIN)/bin:$(PREFIX)/bin:$(PATH)
+export PATH := $(TOOLCHAIN)/bin:$(PREFIX)/bin:$(PATH)
 export PKG_CONFIG_SYSROOT_DIR=$(PREFIX)
 export PKG_CONFIG_LIBDIR=$(PREFIX)/lib/pkgconfig
 
