@@ -46,7 +46,16 @@ download: prefix
 	@mkdir -p $(TMPDIR)
 	@set -eu; \
 	fetch() { \
-		wget --retry-connrefused --waitretry=5 --timeout=60 --tries=6 -qO "$$2" "$$1"; \
+		url="$$1"; file="$$2"; \
+		for attempt in 1 2 3 4 5 6 7 8; do \
+			rm -f "$$file"; \
+			echo "Downloading $$url (attempt $$attempt/8)"; \
+			if wget --retry-connrefused --retry-on-http-error=404,408,429,500,502,503,504 --waitretry=5 --timeout=60 --tries=2 -O "$$file" "$$url" && test -s "$$file"; then \
+				return 0; \
+			fi; \
+			sleep 3; \
+		done; \
+		return 1; \
 	}; \
 	fetch https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.tar.gz $(TMPDIR)/SDL2-2.32.10.tar.gz; \
 	tar zxf $(TMPDIR)/SDL2-2.32.10.tar.gz -C $(TMPDIR); \
