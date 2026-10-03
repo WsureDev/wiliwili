@@ -179,7 +179,7 @@ PC客户端支持切换硬件解码、秒开流畅适合老电脑、支持鼠标
 如果你要移植的设备使用其他底层图形库，那么首先需要移植 nanovg，这可以确保应用主要界面正常，
 其次为了更好的性能表现需要 ffmpeg 的硬解和 mpv 的渲染支持。  
 
-如果你有想要移植的设备欢迎发一条 issue 讨论，Android / iOS 不在讨论之内。
+如果你有想要移植的设备欢迎发一条 issue 讨论。当前仓库提供 Android（SDL2 + libmpv）实验性构建。
 
 ### 新功能
 
@@ -258,6 +258,23 @@ mingw32-make -C build wiliwili -j$(nproc)
 
 
 </details>
+
+### 交叉编译 Android APK
+
+Android 版本沿用 Borealis 的 SDL2 平台后端，并使用 libmpv + FFmpeg 播放视频。GitHub Actions 会分别构建 ARMv7（`armeabi-v7a`）和 ARMv8（`arm64-v8a`）APK。
+
+本地环境需要 Android NDK r27d、Meson、Ninja、pkg-config 和 NASM：
+
+```shell
+make -C scripts/android TMPDIR="$TMPDIR/wiliwili" download
+for abi in armeabi-v7a arm64-v8a; do
+    make -C scripts/android ABI="$abi" ANDROID_NDK="$ANDROID_NDK" build
+done
+bash library/borealis/build_libromfs_generator.sh
+(cd app/platform/android && ./gradlew assembleRelease)
+```
+
+产物位于 `app/platform/android/app/build/outputs/apk/release/`。
 
 ### 交叉编译 Switch 可执行文件 (wiliwili.nro)
 
