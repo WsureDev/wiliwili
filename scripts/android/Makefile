@@ -44,18 +44,33 @@ prefix:
 
 download: prefix
 	@mkdir -p $(TMPDIR)
-	wget -qO- https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.tar.gz | tar zxf - -C $(TMPDIR)
-	wget -qO- https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.5/mbedtls-3.6.5.tar.bz2 | tar jxf - -C $(TMPDIR)
-	wget -qO- https://curl.se/download/curl-8.16.0.tar.xz | tar Jxf - -C $(TMPDIR)
-	wget -qO- https://github.com/webmproject/libwebp/archive/v1.6.0.tar.gz | tar zxf - -C $(TMPDIR)
-	wget -qO- https://downloads.sourceforge.net/project/freetype/freetype2/2.14.1/freetype-2.14.1.tar.xz | tar Jxf - -C $(TMPDIR)
-	wget -qO- https://github.com/harfbuzz/harfbuzz/releases/download/12.3.2/harfbuzz-12.3.2.tar.xz | tar Jxf - -C $(TMPDIR)
-	wget -qO- https://github.com/fribidi/fribidi/releases/download/v1.0.16/fribidi-1.0.16.tar.xz | tar Jxf - -C $(TMPDIR)
-	wget -qO- https://github.com/libass/libass/releases/download/0.17.4/libass-0.17.4.tar.xz | tar Jxf - -C $(TMPDIR)
-	wget -qO- https://downloads.videolan.org/pub/videolan/dav1d/1.5.3/dav1d-1.5.3.tar.xz | tar Jxf - -C $(TMPDIR)
-	wget -qO- https://ffmpeg.org/releases/ffmpeg-8.0.1.tar.xz | tar Jxf - -C $(TMPDIR)
-	wget -qO- https://github.com/mpv-player/mpv/archive/v0.41.0.tar.gz | tar zxf - -C $(TMPDIR)
-	git clone https://github.com/haasn/libplacebo.git -b v7.351.0 --depth 1 --recurse-submodules $(TMPDIR)/libplacebo
+	@set -eu; \
+	fetch() { \
+		wget --retry-connrefused --waitretry=5 --timeout=60 --tries=6 -qO "$$2" "$$1"; \
+	}; \
+	fetch https://github.com/libsdl-org/SDL/releases/download/release-2.32.10/SDL2-2.32.10.tar.gz $(TMPDIR)/SDL2-2.32.10.tar.gz; \
+	tar zxf $(TMPDIR)/SDL2-2.32.10.tar.gz -C $(TMPDIR); \
+	fetch https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.5/mbedtls-3.6.5.tar.bz2 $(TMPDIR)/mbedtls-3.6.5.tar.bz2; \
+	tar jxf $(TMPDIR)/mbedtls-3.6.5.tar.bz2 -C $(TMPDIR); \
+	fetch https://curl.se/download/curl-8.16.0.tar.xz $(TMPDIR)/curl-8.16.0.tar.xz; \
+	tar Jxf $(TMPDIR)/curl-8.16.0.tar.xz -C $(TMPDIR); \
+	fetch https://github.com/webmproject/libwebp/archive/v1.6.0.tar.gz $(TMPDIR)/libwebp-1.6.0.tar.gz; \
+	tar zxf $(TMPDIR)/libwebp-1.6.0.tar.gz -C $(TMPDIR); \
+	fetch https://downloads.sourceforge.net/project/freetype/freetype2/2.14.1/freetype-2.14.1.tar.xz $(TMPDIR)/freetype-2.14.1.tar.xz; \
+	tar Jxf $(TMPDIR)/freetype-2.14.1.tar.xz -C $(TMPDIR); \
+	fetch https://github.com/harfbuzz/harfbuzz/releases/download/12.3.2/harfbuzz-12.3.2.tar.xz $(TMPDIR)/harfbuzz-12.3.2.tar.xz; \
+	tar Jxf $(TMPDIR)/harfbuzz-12.3.2.tar.xz -C $(TMPDIR); \
+	fetch https://github.com/fribidi/fribidi/releases/download/v1.0.16/fribidi-1.0.16.tar.xz $(TMPDIR)/fribidi-1.0.16.tar.xz; \
+	tar Jxf $(TMPDIR)/fribidi-1.0.16.tar.xz -C $(TMPDIR); \
+	fetch https://github.com/libass/libass/releases/download/0.17.4/libass-0.17.4.tar.xz $(TMPDIR)/libass-0.17.4.tar.xz; \
+	tar Jxf $(TMPDIR)/libass-0.17.4.tar.xz -C $(TMPDIR); \
+	fetch https://downloads.videolan.org/pub/videolan/dav1d/1.5.3/dav1d-1.5.3.tar.xz $(TMPDIR)/dav1d-1.5.3.tar.xz; \
+	tar Jxf $(TMPDIR)/dav1d-1.5.3.tar.xz -C $(TMPDIR); \
+	fetch https://ffmpeg.org/releases/ffmpeg-8.0.1.tar.xz $(TMPDIR)/ffmpeg-8.0.1.tar.xz; \
+	tar Jxf $(TMPDIR)/ffmpeg-8.0.1.tar.xz -C $(TMPDIR); \
+	fetch https://github.com/mpv-player/mpv/archive/v0.41.0.tar.gz $(TMPDIR)/mpv-0.41.0.tar.gz; \
+	tar zxf $(TMPDIR)/mpv-0.41.0.tar.gz -C $(TMPDIR); \
+	git clone https://github.com/haasn/libplacebo.git -b v7.351.0 --depth 1 --recurse-submodules $(TMPDIR)/libplacebo; \
 	patch -d $(TMPDIR)/libwebp-1.6.0 -Nbp1 -i $(CURDIR)/../mingw64/libwebp/0001-mingw-cmake-output.patch || true
 
 SDL2:
