@@ -270,8 +270,17 @@ make -C scripts/android TMPDIR="$TMPDIR/wiliwili" download
 for abi in armeabi-v7a arm64-v8a; do
     make -C scripts/android ABI="$abi" ANDROID_NDK="$ANDROID_NDK" build
 done
-bash library/borealis/build_libromfs_generator.sh
-(cd app/platform/android && ./gradlew assembleRelease)
+cmake -S library/borealis/library/lib/extern/libromfs/generator \
+  -B library/borealis/build_libromfs_generator -G Ninja
+cmake --build library/borealis/build_libromfs_generator
+cp library/borealis/build_libromfs_generator/libromfs-generator library/borealis/libromfs-generator
+
+for abi in armeabi-v7a arm64-v8a; do
+    rm -rf app/platform/android/app/src/main/jniLibs
+    mkdir -p app/platform/android/app/src/main/jniLibs/$abi
+    cp jniLibs/$abi/lib/*.so app/platform/android/app/src/main/jniLibs/$abi/
+    (cd app/platform/android && bash ./gradlew --no-daemon -PtargetAbi="$abi" assembleRelease)
+done
 ```
 
 产物位于 `app/platform/android/app/build/outputs/apk/release/`。
